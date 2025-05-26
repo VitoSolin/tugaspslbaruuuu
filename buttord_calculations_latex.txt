@@ -1,0 +1,75 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\title{Perhitungan Matematis untuk Orde Filter Butterworth Digital (`buttord`)}
+\date{}
+
+\begin{document}
+\maketitle
+
+Fungsi \texttt{buttord} digunakan untuk menentukan orde minimum (N) dan frekuensi cutoff alami (Wn) untuk filter Butterworth digital yang memenuhi seperangkat spesifikasi frekuensi dan atenuasi. Berikut adalah langkah-langkah perhitungannya:
+
+\section*{1. Spesifikasi Input}
+Misalkan spesifikasi filter yang diberikan adalah:
+\begin{itemize}
+    \item $f_{s}$: Frekuensi sampling (Hz).
+    \item $f_{p,hz}$: Frekuensi tepi passband (Hz).
+    \item $f_{s,hz}$: Frekuensi tepi stopband (Hz).
+    \item $G_{pass,dB}$: Atenuasi maksimum yang diizinkan di passband (dalam dB, nilai positif).
+    \item $G_{stop,dB}$: Atenuasi minimum yang diperlukan di stopband (dalam dB, nilai positif).
+\end{itemize}
+
+\section*{2. Normalisasi Frekuensi}
+Frekuensi dinormalisasi terhadap frekuensi Nyquist ($f_{nyq}$):
+\begin{align*}
+    f_{nyq} &= \frac{f_s}{2} \\\\
+    \omega_p &= \frac{f_{p,hz}}{f_{nyq}} \quad \text{(Frekuensi passband ternormalisasi, } 0 \le \omega_p \le 1 \text{)} \\\\
+    \omega_s &= \frac{f_{s,hz}}{f_{nyq}} \quad \text{(Frekuensi stopband ternormalisasi, } 0 \le \omega_s \le 1 \text{)}
+\end{align*}
+
+\section*{3. Konversi Atenuasi dari dB ke Rasio Daya}
+Spesifikasi atenuasi dalam dB dikonversi ke rasio daya:
+\begin{align*}
+    \epsilon_p^2 &= 10^{G_{pass,dB}/10} - 1 \\\\
+    \epsilon_s^2 &= 10^{G_{stop,dB}/10} - 1
+\end{align*}
+Di mana $\epsilon_p$ terkait dengan ripple maksimum di passband dan $\epsilon_s$ terkait dengan atenuasi di stopband.
+Untuk filter Butterworth, respons magnitudonya adalah:
+\[ |H(j\Omega)|^2 = \frac{1}{1 + (\Omega/\Omega_c)^{2N}} \]
+Pada tepi passband ($\Omega = \Omega_p$), kita ingin $|H(j\Omega_p)|^2 \ge \frac{1}{1 + \epsilon_p^2}$.
+Pada tepi stopband ($\Omega = \Omega_s$), kita ingin $|H(j\Omega_s)|^2 \le \frac{1}{1 + \epsilon_s^2}$.
+
+\section*{4. Pre-warping Frekuensi}
+Untuk desain filter digital menggunakan transformasi bilinear, frekuensi digital ternormalisasi ($\omega_p, \omega_s$) di-"pre-warp" ke domain frekuensi analog ekivalen ($\Omega_p, \Omega_s$):
+\begin{align*}
+    \Omega_p &= \tan\left(\frac{\pi \omega_p}{2}\right) \\\\
+    \Omega_s &= \tan\left(\frac{\pi \omega_s}{2}\right)
+\end{align*}
+Catatan: Beberapa referensi menggunakan $2/T \cdot \tan(\omega T/2)$, di mana $T=1/f_s$. Jika $\omega$ dinormalisasi terhadap $f_{nyq}$ (sehingga $T=1$ dan $f_s=2$ dalam unit ternormalisasi), maka formulanya menjadi seperti di atas.
+
+\section*{5. Perhitungan Orde Filter (N)}
+Orde filter minimum $N$ yang memenuhi spesifikasi dihitung menggunakan rumus berikut:
+\[ N \ge \frac{\log_{10}(\sqrt{\epsilon_s^2 / \epsilon_p^2})}{\log_{10}(\Omega_s / \Omega_p)} \]
+Atau, sering juga ditulis sebagai:
+\[ N \ge \frac{\text{acosh}(\sqrt{\epsilon_s^2 / \epsilon_p^2})}{\text{acosh}(\Omega_s / \Omega_p)} \]
+Karena orde filter harus bilangan bulat, maka $N$ dibulatkan ke atas:
+\[ N_{final} = \lceil N \rceil \]
+
+\section*{6. Perhitungan Frekuensi Cutoff Alami (Wn)}
+Setelah $N_{final}$ diketahui, frekuensi cutoff alami $\Omega_c$ (pada domain analog yang telah di-warp) dihitung. $\Omega_c$ adalah frekuensi di mana gain filter turun sebesar $G_{pass,dB}$. \texttt{buttord} biasanya menghitung $\Omega_c$ sehingga filter tepat memenuhi spesifikasi passband:
+\[ \Omega_c = \frac{\Omega_p}{(\epsilon_p^2)^{1/(2N_{final})}} \]
+Alternatifnya, bisa juga dihitung berdasarkan spesifikasi stopband:
+\[ \Omega_c = \frac{\Omega_s}{(\epsilon_s^2)^{1/(2N_{final})}} \]
+SciPy memilih $\Omega_c$ untuk memastikan semua spesifikasi terpenuhi atau dilebihi. Biasanya, frekuensi yang dikembalikan adalah frekuensi di mana gain adalah $-G_{pass,dB}$ (titik $G_{pass,dB}$ loss).
+
+Frekuensi $\Omega_c$ kemudian di-"unwarp" kembali ke domain frekuensi digital ternormalisasi ($W_{n,norm}$):
+\[ W_{n,norm} = \frac{2}{\pi} \arctan(\Omega_c) \]
+Ini adalah frekuensi cutoff ternormalisasi yang dikembalikan oleh \texttt{buttord}. Nilai ini berkisar antara 0 dan 1 (relatif terhadap $f_{nyq}$).
+
+Untuk mendapatkan frekuensi cutoff dalam Hz ($W_{n,Hz}$):
+\[ W_{n,Hz} = W_{n,norm} \times f_{nyq} = W_{n,norm} \times \frac{f_s}{2} \]
+\texttt{buttord} mengembalikan $N_{final}$ dan $W_{n,norm}$. Perlu diperhatikan bahwa $W_{n,norm}$ ini adalah frekuensi di mana gain filter adalah $-G_{pass,dB}$. Jika $G_{pass,dB} = 3 \text{ dB}$, maka $W_{n,norm}$ adalah frekuensi cutoff -3dB. Jika $G_{pass,dB}$ berbeda (misalnya 1 dB), maka $W_{n,norm}$ adalah frekuensi di mana gainnya -1dB. Saat menggunakan $N_{final}$ untuk mendesain filter dengan fungsi \texttt{butter}, Anda bisa memilih untuk menggunakan $W_{n,norm}$ ini atau frekuensi cutoff -3dB yang Anda inginkan secara eksplisit.
+
+\end{document} 
