@@ -6,6 +6,8 @@ from scipy.signal import firwin, freqz
 from scipy.fft import fft, fftfreq
 import os 
 
+# Define the output directory for plots
+plot_output_dir = "filter_analysis_plots"
 
 try:
     data = pd.read_csv('resampled_data.txt', sep='\t')
@@ -61,15 +63,16 @@ plt.xlim(0, fs / 2)
 
 plt.tight_layout()
 plt.suptitle("Frequency Analysis of Original Data", y=1.02)
-plt.savefig("fft_original_analysis.png") # << SAVE PLOT 1
-print("\nSaved plot: fft_original_analysis.png")
+os.makedirs(plot_output_dir, exist_ok=True) # Ensure directory exists
+plt.savefig(os.path.join(plot_output_dir, "fft_original_analysis.png")) # << SAVE PLOT 1
+print(f"\nSaved plot: {os.path.join(plot_output_dir, 'fft_original_analysis.png')}")
 plt.show()
 
 
-cutoff_freq = 5.0  
+cutoff_freq = 12.0  
 print(f"Chosen Cutoff Frequency (fc): {cutoff_freq:.2f} Hz")
 
-transition_width = 10.0  
+transition_width = 5.0  
 print(f"Chosen Transition Bandwidth: {transition_width:.2f} Hz")
 
 
@@ -99,8 +102,9 @@ plt.axvline(stopband_start, color='g', linestyle='--', label=f'Stopband Start ({
 plt.ylim(-100, 5) 
 plt.grid(True)
 plt.legend()
-plt.savefig("filter_frequency_response.png") # << SAVE PLOT 2
-print("Saved plot: filter_frequency_response.png")
+os.makedirs(plot_output_dir, exist_ok=True) # Ensure directory exists
+plt.savefig(os.path.join(plot_output_dir, "filter_frequency_response.png")) # << SAVE PLOT 2
+print(f"Saved plot: {os.path.join(plot_output_dir, 'filter_frequency_response.png')}")
 plt.show()
 
 
@@ -132,8 +136,9 @@ plt.legend()
 plt.grid(True)
 
 plt.tight_layout()
-plt.savefig("time_domain_comparison.png") 
-print("Saved plot: time_domain_comparison.png")
+os.makedirs(plot_output_dir, exist_ok=True) # Ensure directory exists
+plt.savefig(os.path.join(plot_output_dir, "time_domain_comparison.png"))
+print(f"Saved plot: {os.path.join(plot_output_dir, 'time_domain_comparison.png')}")
 plt.show()
 
 
@@ -169,8 +174,9 @@ plt.ylim(bottom=0)
 
 plt.tight_layout()
 plt.suptitle("Frequency Analysis After Filtering", y=1.02)
-plt.savefig("fft_filtered_analysis.png") # << SAVE PLOT 4
-print("Saved plot: fft_filtered_analysis.png")
+os.makedirs(plot_output_dir, exist_ok=True) # Ensure directory exists
+plt.savefig(os.path.join(plot_output_dir, "fft_filtered_analysis.png")) # << SAVE PLOT 4
+print(f"Saved plot: {os.path.join(plot_output_dir, 'fft_filtered_analysis.png')}")
 plt.show()
 
 print("\nAnalysis and filtering complete. Plots generated and saved.")
